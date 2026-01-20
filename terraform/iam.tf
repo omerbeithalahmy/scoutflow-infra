@@ -53,3 +53,16 @@ resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.node.name
 }
+
+# Get the EKS Cluster's TLS certificate
+data "tls_certificate" "cluster" {
+  url = aws_eks_cluster.scoutflow_eks_cluster.identity[0].oidc[0].issuer
+}
+
+# Create the OIDC Provider
+resource "aws_iam_openid_connect_provider" "cluster" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.scoutflow_eks_cluster.identity[0].oidc[0].issuer
+}
+
