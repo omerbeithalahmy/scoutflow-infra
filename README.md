@@ -13,6 +13,7 @@ It uses **Terraform** to provision a complete, production-ready Kubernetes (EKS)
 - **Security**: Strict IAM Roles (IRSA) and minimal-access Security Groups.
 - **Ingress**: AWS Load Balancer Controller (Helm Chart).
 - **GitOps**: ArgoCD for continuous deployment.
+- **Observability**: Prometheus/Grafana (Metrics) & CloudWatch (Logs).
 
 ## � Prerequisites
 Before running, ensure you have:
@@ -51,6 +52,18 @@ aws eks update-kubeconfig --region us-east-1 --name scoutflow-eks-cluster
 kubectl get nodes
 ```
 
+## 🐙 How to Access ArgoCD
+After deployment, ArgoCD is running inside your cluster.
+1.  **Port Forward the Service:**
+    ```bash
+    kubectl port-forward svc/argocd-server -n argocd 8080:443
+    ```
+2.  **Open Browser:** Go to `https://localhost:8080`
+3.  **Get Password:** (Username is `admin`)
+    ```bash
+    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+    ```
+
 ## 🧹 How to Destroy (Save Money)
 To delete **everything** and stop billing:
 ```bash
@@ -67,3 +80,4 @@ terraform destroy
 - `alb-controller.tf`: Helm installation of Ingress Controller.
 - `alb-iam.tf`: Permissions for the Ingress Controller.
 - `argocd.tf`: GitOps Tool (Helm installation).
+- `observability.tf`: Prometheus & Grafana (Helm installation).

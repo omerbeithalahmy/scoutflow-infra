@@ -15,6 +15,8 @@ resource "aws_eks_cluster" "scoutflow_eks_cluster" {
         security_group_ids = [aws_security_group.cluster.id]
     }
 
+    enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
     depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 }
 
