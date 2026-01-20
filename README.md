@@ -12,6 +12,7 @@ It uses **Terraform** to provision a complete, production-ready Kubernetes (EKS)
 - **Compute**: EKS Cluster (v1.28) with `t3.medium` Worker Nodes.
 - **Security**: Strict IAM Roles (IRSA) and minimal-access Security Groups.
 - **Ingress**: AWS Load Balancer Controller (Helm Chart).
+- **GitOps**: ArgoCD for continuous deployment.
 
 ## � Prerequisites
 Before running, ensure you have:
@@ -65,3 +66,4 @@ terraform destroy
 - `security-groups.tf`: Firewalls.
 - `alb-controller.tf`: Helm installation of Ingress Controller.
 - `alb-iam.tf`: Permissions for the Ingress Controller.
+- `argocd.tf`: GitOps Tool (Helm installation).
