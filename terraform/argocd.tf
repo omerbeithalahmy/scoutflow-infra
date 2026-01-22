@@ -1,3 +1,6 @@
+# ArgoCD - GitOps Continuous Delivery Tool
+# Helm chart installation for managing Kubernetes applications
+
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -6,8 +9,6 @@ resource "helm_release" "argocd" {
   create_namespace = true
   version          = "5.51.6"
 
-  # Ensure the cluster nodes are ready before installing
-  depends_on = [
-    aws_eks_node_group.scoutflow_eks_node_group
-  ]
+  # Ensure the cluster is ready before installing
+  depends_on = [module.eks]
 }
