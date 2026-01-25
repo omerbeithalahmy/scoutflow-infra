@@ -5,7 +5,7 @@ module "eks" {
   version = "~> 20.0"
 
   cluster_name    = var.eks_cluster_name
-  cluster_version = "1.28"
+  cluster_version = "1.30"
 
   # Networking
   vpc_id     = module.vpc.vpc_id
