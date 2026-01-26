@@ -1,3 +1,6 @@
+# Prometheus & Grafana - Observability Stack
+# kube-prometheus-stack provides monitoring and alerting for Kubernetes
+
 resource "helm_release" "kube_prometheus_stack" {
   name             = "kube-prometheus-stack"
   repository       = "https://prometheus-community.github.io/helm-charts"
@@ -5,7 +8,7 @@ resource "helm_release" "kube_prometheus_stack" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "56.0.0"
-  depends_on = [
-    aws_eks_node_group.scoutflow_eks_node_group
-  ]
+
+  # Wait for cluster to be ready
+  depends_on = [module.eks]
 }
