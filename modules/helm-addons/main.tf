@@ -291,7 +291,7 @@ data "aws_iam_policy_document" "external_secrets" {
       "secretsmanager:DescribeSecret"
     ]
     resources = [
-      "arn:aws:secretsmanager:${data.aws_region.current.name}:*:secret:${var.project_name}-${var.environment}-db-*"
+      "arn:aws:secretsmanager:${data.aws_region.current.name}:*:secret:scoutflow/${var.environment}/database-*"
     ]
   }
 
