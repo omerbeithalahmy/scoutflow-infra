@@ -1,8 +1,3 @@
-# ============================================================================
-# Dev Environment Provider Configurations
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 provider "aws" {
   region = var.region
 

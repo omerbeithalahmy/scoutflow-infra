@@ -1,7 +1,7 @@
 # ============================================================================
-# Eks cluster Module Core Resources
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# EKS Cluster Module - Kubernetes Infrastructure Provisioning
+# Provisions an AWS EKS cluster using the official Terraform AWS EKS module with managed node groups, IRSA support, and control plane logging.
+# Configures public and private endpoint access, cluster autoscaling capabilities, and secure IMDSv2 metadata access for worker nodes.
 # ============================================================================
 
 module "eks" {

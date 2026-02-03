@@ -1,7 +1,7 @@
 # ============================================================================
-# Prod Environment Infrastructure Orchestration
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# Production Environment - Complete Infrastructure Orchestration
+# Deploys VPC networking, EKS cluster, database secrets, and Helm addons (ArgoCD, monitoring, ALB controller, External Secrets).
+# Configured with production-grade settings: multi-AZ NAT gateways for high availability, optimized node sizing, and enhanced reliability for production workloads.
 # ============================================================================
 
 

@@ -1,8 +1,3 @@
-# ============================================================================
-# Eks cluster Module Input Variables
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string

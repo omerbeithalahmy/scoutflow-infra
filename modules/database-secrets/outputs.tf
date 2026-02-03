@@ -1,8 +1,3 @@
-# ============================================================================
-# Database secrets Module Outputs
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 output "secret_arn" {
   description = "ARN of the database credentials secret"
   value       = aws_secretsmanager_secret.db_credentials.arn

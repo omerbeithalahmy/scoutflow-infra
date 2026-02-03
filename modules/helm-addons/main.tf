@@ -1,7 +1,7 @@
 # ============================================================================
-# Helm addons Module Core Resources
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# Helm Addons Module - Kubernetes Platform Services Installation
+# Installs critical Kubernetes platform services: AWS Load Balancer Controller, ArgoCD, Prometheus/Grafana monitoring stack, Cluster Autoscaler, and External Secrets Operator.
+# Configures IAM Roles for Service Accounts (IRSA) for secure AWS API access and manages all necessary IAM policies and role bindings for each addon.
 # ============================================================================
 
 

@@ -1,8 +1,3 @@
-# ============================================================================
-# Networking Module Outputs
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id

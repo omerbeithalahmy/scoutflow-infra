@@ -1,9 +1,3 @@
-# ============================================================================
-# Stage Environment Terraform Version Constraints
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
-
 terraform {
   required_version = ">= 1.5.0"
 

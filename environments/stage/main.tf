@@ -1,7 +1,7 @@
 # ============================================================================
-# Stage Environment Infrastructure Orchestration
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# Staging Environment - Complete Infrastructure Orchestration
+# Deploys VPC networking, EKS cluster, database secrets, and Helm addons (ArgoCD, monitoring, ALB controller, External Secrets).
+# Configured with high-availability settings: multi-AZ NAT gateways and production-like configuration for pre-production testing and validation.
 # ============================================================================
 
 

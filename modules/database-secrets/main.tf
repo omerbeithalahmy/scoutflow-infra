@@ -1,7 +1,7 @@
 # ============================================================================
-# Database secrets Module Core Resources
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# Database Secrets Module - Secure Credential Management
+# Generates random database passwords and stores credentials (username, password, database name) in AWS Secrets Manager.
+# Provides secure secret management with configurable recovery windows and supports password overrides for testing environments.
 # ============================================================================
 
 resource "random_password" "db_password" {

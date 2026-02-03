@@ -1,8 +1,3 @@
-# ============================================================================
-# Helm addons Module Input Variables
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string

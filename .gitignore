@@ -1,9 +1,3 @@
-# ============================================================================
-# Git Configuration and Exclusions
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
-
 .terraform/
 *.tfstate
 *.tfstate.backup

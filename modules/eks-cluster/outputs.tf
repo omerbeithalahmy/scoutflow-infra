@@ -1,8 +1,3 @@
-# ============================================================================
-# Eks cluster Module Outputs
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 output "cluster_id" {
   description = "ID of the EKS cluster"
   value       = module.eks.cluster_id

@@ -1,7 +1,7 @@
 # ============================================================================
-# Networking Module Core Resources
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
+# Networking Module - VPC and Subnet Infrastructure
+# Provisions a VPC using the official Terraform AWS VPC module with public and private subnets across multiple availability zones, NAT gateways, and DNS support.
+# Configures EKS-specific subnet tags for load balancer discovery and enables flexible NAT gateway deployment (single or multi-AZ) based on environment requirements.
 # ============================================================================
 
 module "vpc" {

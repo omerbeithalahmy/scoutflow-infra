@@ -1,8 +1,3 @@
-# ============================================================================
-# Helm addons Module Outputs
-# Uses 'latest' tags, minimal resources, single replicas
-# Cost-optimized for development and feature testing
-# ============================================================================
 output "alb_controller_role_arn" {
   description = "ARN of the IAM role for ALB Controller"
   value       = aws_iam_role.alb_controller_role.arn
