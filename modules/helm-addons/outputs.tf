@@ -23,3 +23,13 @@ output "cluster_autoscaler_role_arn" {
   description = "ARN of the IAM role for Cluster Autoscaler"
   value       = var.enable_cluster_autoscaler ? aws_iam_role.cluster_autoscaler[0].arn : null
 }
+
+output "external_secrets_namespace" {
+  description = "Namespace where External Secrets Operator is deployed"
+  value       = var.enable_external_secrets ? "external-secrets-system" : null
+}
+
+output "external_secrets_role_arn" {
+  description = "ARN of the IAM role for External Secrets Operator"
+  value       = var.enable_external_secrets ? aws_iam_role.external_secrets[0].arn : null
+}

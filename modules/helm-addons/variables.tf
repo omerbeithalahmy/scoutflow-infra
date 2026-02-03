@@ -77,3 +77,15 @@ variable "enable_cluster_autoscaler" {
   type        = bool
   default     = false
 }
+
+variable "enable_external_secrets" {
+  description = "Enable External Secrets Operator for syncing AWS Secrets Manager to Kubernetes"
+  type        = bool
+  default     = false
+}
+
+variable "external_secrets_version" {
+  description = "External Secrets Operator Helm chart version"
+  type        = string
+  default     = "0.9.11"
+}

@@ -82,3 +82,13 @@ output "argocd_namespace" {
   description = "Namespace where ArgoCD is deployed"
   value       = module.helm_addons.argocd_namespace
 }
+
+output "external_secrets_namespace" {
+  description = "Namespace where External Secrets Operator is deployed"
+  value       = module.helm_addons.external_secrets_namespace
+}
+
+output "external_secrets_role_arn" {
+  description = "ARN of the IAM role for External Secrets Operator"
+  value       = module.helm_addons.external_secrets_role_arn
+}

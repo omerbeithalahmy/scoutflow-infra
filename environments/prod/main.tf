@@ -74,6 +74,7 @@ module "helm_addons" {
   enable_argocd             = true
   enable_monitoring         = var.enable_monitoring
   enable_cluster_autoscaler = var.enable_cluster_autoscaler
+  enable_external_secrets   = true
 
   depends_on = [module.eks]
 }
