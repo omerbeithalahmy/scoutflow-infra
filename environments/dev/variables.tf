@@ -1,3 +1,8 @@
+# ============================================================================
+# Dev Environment Input Variables
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 variable "region" {
   description = "AWS region"
   type        = string

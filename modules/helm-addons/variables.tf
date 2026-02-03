@@ -1,3 +1,8 @@
+# ============================================================================
+# Helm addons Module Input Variables
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
@@ -28,9 +33,6 @@ variable "oidc_provider" {
   type        = string
 }
 
-# ============================================
-# Helm Chart Versions
-# ============================================
 
 variable "alb_controller_version" {
   description = "AWS Load Balancer Controller Helm chart version"
@@ -56,9 +58,6 @@ variable "cluster_autoscaler_version" {
   default     = "9.29.0"
 }
 
-# ============================================
-# Feature Toggles
-# ============================================
 
 variable "enable_argocd" {
   description = "Enable ArgoCD deployment"

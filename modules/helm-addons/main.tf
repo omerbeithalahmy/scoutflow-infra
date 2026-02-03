@@ -1,16 +1,14 @@
-# Helm Addons Module
-# Deploys AWS Load Balancer Controller, ArgoCD, and Observability Stack
+# ============================================================================
+# Helm addons Module Core Resources
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 
-# ============================================
-# AWS Load Balancer Controller - IAM Policy
-# ============================================
 
-# Fetch the official ALB Controller IAM Policy
 data "http" "alb_iam_policy" {
   url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json"
 }
 
-# Create the IAM Policy for ALB Controller
 resource "aws_iam_policy" "alb_controller_policy" {
   name_prefix = "${var.project_name}-${var.environment}-alb-controller-"
   description = "IAM Policy for AWS Load Balancer Controller - ${var.environment}"
@@ -21,7 +19,6 @@ resource "aws_iam_policy" "alb_controller_policy" {
   }
 }
 
-# Create IRSA Role for ALB Controller
 resource "aws_iam_role" "alb_controller_role" {
   name_prefix = "${var.project_name}-${var.environment}-alb-controller-"
 
@@ -49,15 +46,11 @@ resource "aws_iam_role" "alb_controller_role" {
   }
 }
 
-# Attach the Policy to the Role
 resource "aws_iam_role_policy_attachment" "alb_controller_policy_attachment" {
   role       = aws_iam_role.alb_controller_role.name
   policy_arn = aws_iam_policy.alb_controller_policy.arn
 }
 
-# ============================================
-# AWS Load Balancer Controller - Helm Chart
-# ============================================
 
 resource "helm_release" "alb_controller" {
   name       = "aws-load-balancer-controller"
@@ -97,9 +90,6 @@ resource "helm_release" "alb_controller" {
   }
 }
 
-# ============================================
-# ArgoCD - GitOps Continuous Delivery
-# ============================================
 
 resource "helm_release" "argocd" {
   count = var.enable_argocd ? 1 : 0
@@ -112,11 +102,7 @@ resource "helm_release" "argocd" {
   version          = var.argocd_version
 }
 
-# ============================================
-# Observability - Prometheus & Grafana
-# ============================================
 
-# Random password for Grafana admin
 resource "random_password" "grafana_admin_password" {
   count   = var.enable_monitoring ? 1 : 0
   length  = 16
@@ -149,11 +135,7 @@ resource "helm_release" "kube_prometheus_stack" {
   }
 }
 
-# ============================================
-# Cluster Autoscaler (Optional)
-# ============================================
 
-# IAM Policy for Cluster Autoscaler
 data "aws_iam_policy_document" "cluster_autoscaler" {
   count = var.enable_cluster_autoscaler ? 1 : 0
 
@@ -257,11 +239,7 @@ resource "helm_release" "cluster_autoscaler" {
   }
 }
 
-# ============================================
-# External Secrets Operator
-# ============================================
 
-# External Secrets Operator - Helm Chart
 resource "helm_release" "external_secrets" {
   count            = var.enable_external_secrets ? 1 : 0
   name             = "external-secrets"
@@ -276,11 +254,9 @@ resource "helm_release" "external_secrets" {
     value = "true"
   }
 
-  # Wait for cluster to be ready
   depends_on = [var.cluster_name]
 }
 
-# IAM Policy for External Secrets Operator to read from Secrets Manager
 data "aws_iam_policy_document" "external_secrets" {
   count = var.enable_external_secrets ? 1 : 0
 
@@ -317,7 +293,6 @@ resource "aws_iam_policy" "external_secrets" {
   }
 }
 
-# IRSA Role for External Secrets Operator
 resource "aws_iam_role" "external_secrets" {
   count = var.enable_external_secrets ? 1 : 0
 
@@ -355,7 +330,6 @@ resource "aws_iam_role_policy_attachment" "external_secrets" {
   policy_arn = aws_iam_policy.external_secrets[0].arn
 }
 
-# Annotate the ESO service account with the IAM role
 resource "kubernetes_annotations" "external_secrets_sa" {
   count = var.enable_external_secrets ? 1 : 0
 
@@ -371,7 +345,6 @@ resource "kubernetes_annotations" "external_secrets_sa" {
     "eks.amazonaws.com/role-arn" = aws_iam_role.external_secrets[0].arn
   }
 
-  # Must be applied AFTER the Helm release creates the service account
   depends_on = [helm_release.external_secrets]
 }
 

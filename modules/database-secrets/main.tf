@@ -1,15 +1,15 @@
-# Database Secrets Module
-# Creates AWS Secrets Manager secrets for database credentials
+# ============================================================================
+# Database secrets Module Core Resources
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 
-# Random password generation for database
 resource "random_password" "db_password" {
-  length  = 16
-  special = true
-  # Exclude characters that might cause issues in connection strings
+  length           = 16
+  special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-# Create AWS Secrets Manager secret
 resource "aws_secretsmanager_secret" "db_credentials" {
   name                    = "scoutflow/${var.environment}/database"
   description             = "Database credentials for ${var.project_name} ${var.environment}"
@@ -22,7 +22,6 @@ resource "aws_secretsmanager_secret" "db_credentials" {
   }
 }
 
-# Store credentials in the secret
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({

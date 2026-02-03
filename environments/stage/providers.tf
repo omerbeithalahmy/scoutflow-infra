@@ -1,4 +1,8 @@
-# AWS Provider Configuration
+# ============================================================================
+# Stage Environment Provider Configurations
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 provider "aws" {
   region = var.region
 
@@ -12,8 +16,6 @@ provider "aws" {
   }
 }
 
-# Helm Provider Configuration
-# Connects to EKS cluster to manage Helm releases
 provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
