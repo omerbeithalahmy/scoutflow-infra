@@ -11,12 +11,12 @@ resource "random_password" "db_password" {
 
 # Create AWS Secrets Manager secret
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name_prefix             = "${var.project_name}-${var.environment}-db-"
+  name                    = "scoutflow/${var.environment}/database"
   description             = "Database credentials for ${var.project_name} ${var.environment}"
   recovery_window_in_days = var.recovery_window_in_days
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-db-credentials"
+    Name        = "scoutflow-${var.environment}-database"
     Environment = var.environment
     ManagedBy   = "terraform"
   }

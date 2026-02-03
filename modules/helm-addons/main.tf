@@ -257,4 +257,122 @@ resource "helm_release" "cluster_autoscaler" {
   }
 }
 
+# ============================================
+# External Secrets Operator
+# ============================================
+
+# External Secrets Operator - Helm Chart
+resource "helm_release" "external_secrets" {
+  count            = var.enable_external_secrets ? 1 : 0
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  version          = var.external_secrets_version
+  namespace        = "external-secrets-system"
+  create_namespace = true
+
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+
+  # Wait for cluster to be ready
+  depends_on = [var.cluster_name]
+}
+
+# IAM Policy for External Secrets Operator to read from Secrets Manager
+data "aws_iam_policy_document" "external_secrets" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret"
+    ]
+    resources = [
+      "arn:aws:secretsmanager:${data.aws_region.current.name}:*:secret:scoutflow/${var.environment}/database-*"
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "secretsmanager:ListSecrets"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "external_secrets" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  name_prefix = "${var.project_name}-${var.environment}-eso-"
+  description = "IAM Policy for External Secrets Operator - ${var.environment}"
+  policy      = data.aws_iam_policy_document.external_secrets[0].json
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+# IRSA Role for External Secrets Operator
+resource "aws_iam_role" "external_secrets" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  name_prefix = "${var.project_name}-${var.environment}-eso-"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = var.oidc_provider_arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${var.oidc_provider}:sub" = "system:serviceaccount:external-secrets-system:external-secrets"
+            "${var.oidc_provider}:aud" = "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "external_secrets" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  role       = aws_iam_role.external_secrets[0].name
+  policy_arn = aws_iam_policy.external_secrets[0].arn
+}
+
+# Annotate the ESO service account with the IAM role
+resource "kubernetes_annotations" "external_secrets_sa" {
+  count = var.enable_external_secrets ? 1 : 0
+
+  api_version = "v1"
+  kind        = "ServiceAccount"
+
+  metadata {
+    name      = "external-secrets"
+    namespace = "external-secrets-system"
+  }
+
+  annotations = {
+    "eks.amazonaws.com/role-arn" = aws_iam_role.external_secrets[0].arn
+  }
+
+  # Must be applied AFTER the Helm release creates the service account
+  depends_on = [helm_release.external_secrets]
+}
+
 data "aws_region" "current" {}
