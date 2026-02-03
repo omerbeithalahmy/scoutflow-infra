@@ -1,9 +1,9 @@
-# Staging Environment - ScoutFlow Infrastructure
-# Production-like configuration for pre-production testing
+# ============================================================================
+# Stage Environment Infrastructure Orchestration
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 
-# ============================================
-# Networking Module
-# ============================================
 
 module "networking" {
   source = "../../modules/networking"
@@ -18,9 +18,6 @@ module "networking" {
   eks_cluster_name     = var.eks_cluster_name
 }
 
-# ============================================
-# EKS Cluster Module
-# ============================================
 
 module "eks" {
   source = "../../modules/eks-cluster"
@@ -41,9 +38,6 @@ module "eks" {
   cluster_endpoint_public_access = true
 }
 
-# ============================================
-# Database Secrets Module
-# ============================================
 
 module "database_secrets" {
   source = "../../modules/database-secrets"
@@ -53,13 +47,8 @@ module "database_secrets" {
   db_username  = "postgres"
   db_name      = "nba_stats"
 
-  # For dev, you can override with a simple password or let it auto-generate
-  # db_password_override = "devpassword123" # Uncomment to set a specific password
 }
 
-# ============================================
-# Helm Addons Module
-# ============================================
 
 module "helm_addons" {
   source = "../../modules/helm-addons"

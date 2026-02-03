@@ -1,8 +1,9 @@
-# Production Environment Outputs
+# ============================================================================
+# Prod Environment Resource Outputs
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
 
-# ============================================
-# VPC Outputs
-# ============================================
 
 output "vpc_id" {
   description = "ID of the VPC"
@@ -19,9 +20,6 @@ output "public_subnets" {
   value       = module.networking.public_subnets
 }
 
-# ============================================
-# EKS Cluster Outputs
-# ============================================
 
 output "cluster_name" {
   description = "Name of the EKS cluster"
@@ -43,9 +41,6 @@ output "configure_kubectl" {
   value       = module.eks.configure_kubectl
 }
 
-# ============================================
-# Database Secrets Outputs
-# ============================================
 
 output "db_secret_arn" {
   description = "ARN of the database credentials secret in AWS Secrets Manager"
@@ -68,9 +63,6 @@ output "db_password" {
   sensitive   = true
 }
 
-# ============================================
-# Helm Addons Outputs
-# ============================================
 
 output "grafana_admin_password" {
   description = "Grafana admin password (if monitoring is enabled)"
