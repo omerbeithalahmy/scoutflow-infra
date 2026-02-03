@@ -57,6 +57,12 @@ This repository manages ScoutFlow's global infrastructure across three environme
 
 ```
 scoutflow-infra/
+├── bootstrap/                    # One-time state backend infrastructure
+│   ├── main.tf                  # S3 bucket + DynamoDB table for remote state
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── README.md                # Bootstrap setup instructions
+│
 ├── modules/                      # Reusable modular components
 │   ├── networking/               # VPC, Subnets, NAT Gateways
 │   ├── eks-cluster/              # EKS Control Plane & Node Groups
@@ -65,9 +71,70 @@ scoutflow-infra/
 │
 └── environments/
     ├── dev/                      # Development (minimal resources, single NAT)
+    │   ├── backend.tf           # Remote backend config (commented by default)
+    │   ├── main.tf
+    │   └── variables.tf
     ├── stage/                    # Staging (2 replicas, monitor stack enabled)
+    │   ├── backend.tf           # Remote backend config (commented by default)
+    │   └── ...
     └── prod/                     # Production (HA, scaling, secure hardening)
+        ├── backend.tf           # Remote backend config (commented by default)
+        └── ...
 ```
+
+---
+
+## 🔄 State Management
+
+This repository supports **two backend options** for Terraform state management:
+
+### Option 1: Local Backend (Default - Active Now)
+
+**Current configuration** - State files stored locally on your machine.
+
+✅ **Pros:**
+- Simple setup, no prerequisites
+- Fast iteration for solo projects
+- No AWS costs for state storage
+
+⚠️ **Cons:**
+- No team collaboration
+- No state locking (concurrent apply protection)
+- Risk of state loss if machine fails
+
+**Usage:** Just use Terraform normally - already configured!
+
+### Option 2: Remote Backend (Production-Ready)
+
+**Available but inactive** - S3 + DynamoDB backend ready to enable.
+
+✅ **Pros:**
+- Team collaboration with shared state
+- State locking prevents concurrent modifications
+- State versioning for recovery
+- CI/CD pipeline compatible
+- Encrypted at rest
+
+⚠️ **Setup Required:**
+
+```bash
+# 1. Create S3 bucket and DynamoDB table (one-time)
+cd bootstrap
+terraform init
+terraform apply
+
+# 2. Uncomment backend configuration
+# Edit: environments/dev/backend.tf (remove # comments)
+
+# 3. Migrate local state to S3
+cd environments/dev
+terraform init -migrate-state  # Type 'yes' when prompted
+```
+
+📖 **Detailed instructions:** See [bootstrap/README.md](bootstrap/README.md)
+
+> [!NOTE]
+> You can use different backends per environment (e.g., dev local, prod remote). Each `backend.tf` file is independent.
 
 ---
 
@@ -75,12 +142,16 @@ scoutflow-infra/
 
 ### Prerequisites
 
-1. **AWS CLI** configured with administrator credentials
-2. **Terraform CLI** (>= 1.5.0) installed
-3. **kubectl** for cluster management
-4. **S3 Bucket** (for remote state - optional but recommended)
+1. **AWS CLI** configured with valid credentials ([Setup Guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html))
+2. **Terraform CLI** (>= 1.5.0) installed ([Download](https://www.terraform.io/downloads))
+3. **kubectl** for cluster management ([Install](https://kubernetes.io/docs/tasks/tools/))
+4. **Required IAM Permissions:**
+   - VPC and EC2 full access
+   - EKS cluster creation
+   - IAM role/policy creation
+   - Secrets Manager access
 
-### Deploy Infrastructure
+### Deploy Infrastructure (Local Backend)
 
 ```bash
 # 1. Initialize development environment
@@ -91,6 +162,25 @@ terraform init
 terraform plan
 
 # 3. Apply changes
+terraform apply
+```
+
+### Deploy Infrastructure (Remote Backend)
+
+```bash
+# 1. Create state backend (one-time)
+cd bootstrap
+terraform init && terraform apply
+
+# 2. Uncomment backend.tf in your environment
+vim environments/dev/backend.tf  # Remove # comments
+
+# 3. Initialize with backend migration
+cd environments/dev
+terraform init -migrate-state  # Answer 'yes'
+
+# 4. Deploy infrastructure
+terraform plan
 terraform apply
 ```
 
@@ -273,11 +363,20 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ⚠️ **Always use `terraform plan`** - Never apply directly to production without a plan file review.
 
-### Remote State
+### State Management
 
-🔒 **State must be remote for Team Collaboration**
-- Local state is for Dev only
-- Stage/Prod must use S3/DynamoDB to prevent state corruption
+🔒 **Choose Your Backend Strategy:**
+
+**Local Backend (Current):**
+- Active by default
+- Suitable for solo development and demos
+- State files in `environments/*/terraform.tfstate`
+
+**Remote Backend (Recommended for Teams):**
+- Bootstrap infrastructure ready in `bootstrap/`
+- Backend configs prepared in `environments/*/backend.tf` (commented out)
+- Enable by running bootstrap, uncommenting backend.tf, and migrating state
+- See [State Management](#-state-management) section above
 
 ### Billable Resources
 
