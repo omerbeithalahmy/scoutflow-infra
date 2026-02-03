@@ -45,96 +45,23 @@ This repository manages ScoutFlow's global infrastructure across three environme
 └─────────────────────────────────────────────────────┘
 ```
 
-**Infrastructure Management Flow:**
-1. Terraform defines modules for Networking, EKS, and Addons
-2. Environment-specific configurations (dev/stage/prod) reference modules
-3. State is stored securely in S3 with DynamoDB locking
-4. **All secrets are handled by AWS Secrets Manager** ✅
-
 ---
 
 ## 📁 Repository Structure
 
 ```
 scoutflow-infra/
-├── bootstrap/                    # One-time state backend infrastructure
-│   ├── main.tf                  # S3 bucket + DynamoDB table for remote state
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── README.md                # Bootstrap setup instructions
-│
-├── modules/                      # Reusable modular components
+├── bootstrap/                    # One-time state backend infrastructure (S3 + DynamoDB)
+├── modules/                      # Reusable Terraform modules
 │   ├── networking/               # VPC, Subnets, NAT Gateways
 │   ├── eks-cluster/              # EKS Control Plane & Node Groups
 │   ├── helm-addons/              # ArgoCD, LB Controller, Metrics
 │   └── database-secrets/         # AWS Secrets Manager integration
-│
 └── environments/
-    ├── dev/                      # Development (minimal resources, single NAT)
-    │   ├── backend.tf           # Remote backend config (commented by default)
-    │   ├── main.tf
-    │   └── variables.tf
-    ├── stage/                    # Staging (2 replicas, monitor stack enabled)
-    │   ├── backend.tf           # Remote backend config (commented by default)
-    │   └── ...
-    └── prod/                     # Production (HA, scaling, secure hardening)
-        ├── backend.tf           # Remote backend config (commented by default)
-        └── ...
+    ├── dev/                      # Development (t3.small, 2 nodes)
+    ├── stage/                    # Staging (t3.medium, 2 nodes, monitoring enabled)
+    └── prod/                     # Production (t3.medium, 3 nodes, HA)
 ```
-
----
-
-## 🔄 State Management
-
-This repository supports **two backend options** for Terraform state management:
-
-### Option 1: Local Backend (Default - Active Now)
-
-**Current configuration** - State files stored locally on your machine.
-
-✅ **Pros:**
-- Simple setup, no prerequisites
-- Fast iteration for solo projects
-- No AWS costs for state storage
-
-⚠️ **Cons:**
-- No team collaboration
-- No state locking (concurrent apply protection)
-- Risk of state loss if machine fails
-
-**Usage:** Just use Terraform normally - already configured!
-
-### Option 2: Remote Backend (Production-Ready)
-
-**Available but inactive** - S3 + DynamoDB backend ready to enable.
-
-✅ **Pros:**
-- Team collaboration with shared state
-- State locking prevents concurrent modifications
-- State versioning for recovery
-- CI/CD pipeline compatible
-- Encrypted at rest
-
-⚠️ **Setup Required:**
-
-```bash
-# 1. Create S3 bucket and DynamoDB table (one-time)
-cd bootstrap
-terraform init
-terraform apply
-
-# 2. Uncomment backend configuration
-# Edit: environments/dev/backend.tf (remove # comments)
-
-# 3. Migrate local state to S3
-cd environments/dev
-terraform init -migrate-state  # Type 'yes' when prompted
-```
-
-📖 **Detailed instructions:** See [bootstrap/README.md](bootstrap/README.md)
-
-> [!NOTE]
-> You can use different backends per environment (e.g., dev local, prod remote). Each `backend.tf` file is independent.
 
 ---
 
@@ -142,277 +69,356 @@ terraform init -migrate-state  # Type 'yes' when prompted
 
 ### Prerequisites
 
-1. **AWS CLI** configured with valid credentials ([Setup Guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html))
-2. **Terraform CLI** (>= 1.5.0) installed ([Download](https://www.terraform.io/downloads))
-3. **kubectl** for cluster management ([Install](https://kubernetes.io/docs/tasks/tools/))
-4. **Required IAM Permissions:**
-   - VPC and EC2 full access
-   - EKS cluster creation
-   - IAM role/policy creation
-   - Secrets Manager access
+1. **AWS CLI** configured ([Setup Guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html))
+2. **Terraform CLI** (>= 1.5.0) ([Download](https://www.terraform.io/downloads))
+3. **kubectl** ([Install](https://kubernetes.io/docs/tasks/tools/))
+4. **AWS IAM Permissions** - See [IAM Setup](#-iam-setup) below
 
-### Deploy Infrastructure (Local Backend)
+### Deploy Infrastructure
 
 ```bash
-# 1. Initialize development environment
+# 1. Clone the repository
+git clone https://github.com/omerbh7/scoutflow-infra
+cd scoutflow-infra
+
+# 2. Navigate to environment
 cd environments/dev
+
+# 3. Initialize Terraform
 terraform init
 
-# 2. Review infrastructure plan
+# 4. Review plan
 terraform plan
 
-# 3. Apply changes
-terraform apply
-```
-
-### Deploy Infrastructure (Remote Backend)
-
-```bash
-# 1. Create state backend (one-time)
-cd bootstrap
-terraform init && terraform apply
-
-# 2. Uncomment backend.tf in your environment
-vim environments/dev/backend.tf  # Remove # comments
-
-# 3. Initialize with backend migration
-cd environments/dev
-terraform init -migrate-state  # Answer 'yes'
-
-# 4. Deploy infrastructure
-terraform plan
+# 5. Deploy
 terraform apply
 ```
 
 ### Verify Deployment
 
 ```bash
-# Configure kubectl connectivity
+# Configure kubectl
 $(terraform output -raw configure_kubectl)
 
-# Check EKS nodes
+# Check nodes
 kubectl get nodes
 
-# Verify installed addons (ArgoCD, etc)
+# Verify ArgoCD
 kubectl get pods -A | grep argocd
 ```
 
 ---
 
-## 🔐 Secret Management
+## 🔐 IAM Setup
 
-### How Terraform Handles Secrets
+<details>
+<summary><b>📖 Required AWS Permissions (Click to expand)</b></summary>
 
-**Configuration** (in modules):
-```hcl
-resource "aws_secretsmanager_secret" "db_pass" {
-  name        = "scoutflow/${var.env}/database"
-  description = "Managed by Terraform"
+### Core Services Required
+- **VPC**: Create/modify VPCs, subnets, route tables, NAT gateways
+- **EC2**: Instance management, security groups, network interfaces
+- **EKS**: Create and manage EKS clusters and node groups
+- **IAM**: Create roles, policies, instance profiles
+- **Secrets Manager**: Create, read, update secrets
+- **S3**: Manage buckets (for remote state)
+- **DynamoDB**: Manage tables (for state locking)
+
+### Quick Setup Options
+
+**Option 1: AWS Console (Easiest)**
+1. Log in to AWS Console → IAM → Users → Add User
+2. Username: `terraform-scoutflow`
+3. Enable "Programmatic access"
+4. Attach **AdministratorAccess** policy (or custom policy below)
+5. Save Access Key ID and Secret Access Key
+
+**Option 2: Use Custom Policy**
+
+<details>
+<summary>Click for complete IAM policy JSON</summary>
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["ec2:*", "elasticloadbalancing:*", "autoscaling:*", "eks:*"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PassRole",
+        "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:CreatePolicy",
+        "iam:DeletePolicy", "iam:GetPolicy", "iam:CreateInstanceProfile",
+        "iam:DeleteInstanceProfile", "iam:GetInstanceProfile",
+        "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
+        "iam:TagRole", "iam:TagPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:CreateSecret", "secretsmanager:DeleteSecret",
+        "secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue",
+        "secretsmanager:PutSecretValue", "secretsmanager:UpdateSecret"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket", "s3:DeleteBucket", "s3:ListBucket",
+        "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+        "s3:GetBucketVersioning", "s3:PutBucketVersioning",
+        "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock",
+        "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration"
+      ],
+      "Resource": ["arn:aws:s3:::scoutflow-terraform-state", "arn:aws:s3:::scoutflow-terraform-state/*"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable", "dynamodb:DeleteTable", "dynamodb:DescribeTable",
+        "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:*:*:table/scoutflow-terraform-locks"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy"],
+      "Resource": "*"
+    }
+  ]
 }
 ```
 
-**What Happens:**
-1. Terraform generates high-entropy random passwords
-2. Creates/Updates AWS Secrets Manager entries per environment
-3. Exports ARNs for consumption by the App/GitOps layers
-4. **Sensitive values are marked as sensitive in Terraform outputs**
+</details>
 
-**Security Benefits:**
-- ✅ No hardcoded passwords in any repository
-- ✅ Automated rotation-ready configuration
-- ✅ IAM-protected secret access
-- ✅ Encrypted at rest via AWS KMS
+### Configure Credentials
+
+```bash
+aws configure
+# Enter your Access Key ID, Secret Access Key, region (us-east-1), and output format (json)
+
+# Verify
+aws sts get-caller-identity
+```
+
+</details>
 
 ---
 
-## 🌍 Environment Configuration
+## 🔄 State Management
+
+<details>
+<summary><b>📖 Local vs Remote Backend (Click to expand)</b></summary>
+
+### Current: Local Backend (Default)
+
+State files stored locally in `environments/*/terraform.tfstate`
+
+✅ Simple, fast, no AWS costs  
+⚠️ No team collaboration, no state locking
+
+### Optional: Remote Backend (S3 + DynamoDB)
+
+For team collaboration and CI/CD:
+
+**Step 1: Create Bootstrap Resources**
+
+```bash
+cd bootstrap
+terraform init && terraform apply
+```
+
+**Step 2: Enable Backend**
+
+Edit `environments/dev/backend.tf` and uncomment the terraform backend block
+
+**Step 3: Migrate State**
+
+```bash
+cd environments/dev
+terraform init -migrate-state  # Answer 'yes'
+```
+
+State now stored in S3 with DynamoDB locking!
+
+📖 **Full guide**: See [bootstrap/README.md](bootstrap/README.md)
+
+</details>
+
+---
+
+## 🌍 Environment Configurations
+
+| Environment | Purpose | Node Type | Nodes | NAT Gateways | Monitoring |
+|-------------|---------|-----------|-------|--------------|------------|
+| **Dev** | Feature testing | t3.small | 2 | 1 (cost savings) | Disabled |
+| **Stage** | QA validation | t3.medium | 2 | Multi-AZ | Prometheus + Grafana |
+| **Prod** | Live workloads | t3.medium | 3 | Multi-AZ | Full stack + alerts |
+
+<details>
+<summary><b>📖 Detailed Environment Specs</b></summary>
 
 ### Development
-
-**Purpose:** Rapid iteration and local testing
-
-- **Networking:** 1 NAT Gateway (Cost Savings)
-- **Node Type:** t3.small
-- **Desired Nodes:** 2
-- **Monitoring:** Disabled
-- **Cleanup:** Frequently destroyed to save costs
+- **Purpose:** Rapid iteration, frequently destroyed to save costs
+- **Resources:** Minimal - 1 NAT gateway, 2 t3.small nodes
+- **State:** Local backend (default)
 
 ### Staging
-
-**Purpose:** QA validation and production simulation
-
-- **Networking:** Multi-AZ NAT Gateways
-- **Node Type:** t3.medium
-- **Desired Nodes:** 2
+- **Purpose:** Pre-production testing, QA validation
+- **Resources:** Production-like - Multi-AZ NAT, 2 t3.medium nodes
+- **State:** Remote S3 backend recommended
 - **Monitoring:** Prometheus & Grafana enabled
-- **State:** Remote S3 state required
 
 ### Production
+- **Purpose:** Mission-critical live workloads
+- **Resources:** High availability - 3 AZs, 3 t3.medium nodes
+- **State:** Remote S3 backend required
+- **Security:** Public access restricted, enhanced logging
+- **Monitoring:** Full observability stack with alerting
 
-**Purpose:** Live application workloads
-
-- **Networking:** High Availability (3 AZs)
-- **Node Type:** t3.medium (Scalable)
-- **Desired Nodes:** 3
-- **Monitoring:** Full stack with Alerts
-- **Security:** Public access restricted, Enhanced logging
-
----
-
-## 🔄 Infrastructure Workflow
-
-### Local Development
-
-```
-1. Modify Terraform module in `modules/`
-   ↓
-2. Change directory to `environments/dev`
-   ↓
-3. Run `terraform plan` to verify impact
-   ↓
-4. Run `terraform apply` to deploy changes
-   ↓
-5. Validate in EKS Console or via kubectl
-```
-
-### Production Promotion
-
-```
-1. Test module changes in Dev environment
-   ↓
-2. Commit and Merge to main branch
-   ↓
-3. Initialize `environments/prod`
-   ↓
-4. Perform strict `terraform plan` review
-   ↓
-5. Apply changes and verify cluster health
-```
+</details>
 
 ---
 
 ## 🛠️ Common Operations
 
-### Update Cluster Capacity
+<details>
+<summary><b>📖 Useful Commands (Click to expand)</b></summary>
+
+### Scale Cluster
 
 ```bash
-# 1. Edit variables file
-vi environments/prod/variables.tf
+# Edit variables
+vim environments/prod/variables.tf
+# Change: node_desired_size = 5
 
-# 2. Modify node_desired_size
-node_desired_size = 5
-
-# 3. Apply change
+# Apply
 terraform apply -target=module.eks
 ```
 
-### Format and Validate
+### Format & Validate
 
 ```bash
-# Ensure clean code structure
 terraform fmt -recursive
-
-# Perform syntax and logic checks
 terraform validate
 ```
 
-### Accessing ArgoCD (Installed by Infra)
+### Access ArgoCD
 
 ```bash
-# Get initial admin password
+# Get password
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d
 
-# Port forward to UI
+# Port forward
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
+### Destroy Environment
+
+```bash
+cd environments/dev
+terraform destroy
+```
+
+</details>
+
 ---
 
-## 📊 Resource Allocation (EKS Nodes)
+## 🔐 Secret Management
 
-| Environment | Instance Type | Min Nodes | Desired | Max Nodes |
-|-------------|---------------|-----------|---------|-----------|
-| **Dev**     | t3.small      | 1         | 2       | 3         |
-| **Stage**   | t3.medium     | 1         | 2       | 3         |
-| **Prod**    | t3.medium     | 2         | 3       | 5         |
+All secrets are managed by **AWS Secrets Manager** (no hardcoded passwords!)
+
+**How it works:**
+1. Terraform generates random passwords
+2. Stores in AWS Secrets Manager (`scoutflow/{env}/database`)
+3. Outputs secret ARNs for app consumption
+4. Encrypted at rest via AWS KMS
+
+**Security benefits:**
+- ✅ No secrets in Git
+- ✅ Automated rotation-ready
+- ✅ IAM-protected access
+- ✅ Audit logging
 
 ---
 
-## 🔗 Integration with Other Repositories
+## 🔗 Integration with Other Repos
 
 ### [scoutflow-app](https://github.com/omerbh7/scoutflow-app)
-
-**Infrastructure Provides:**
-- Node capacity for deployments
-- LB Controller for Ingress
-- Secret ARNs for DB connectivity
+**Infrastructure Provides:** Node capacity, Load Balancer Controller, Secret ARNs
 
 ### [scoutflow-gitops](https://github.com/omerbh7/scoutflow-gitops)
-
-**Infrastructure Provides:**
-- ArgoCD Server & Controller
-- Namespaces and RBAC
-- Secret Store CSI driver / External Secrets foundation
+**Infrastructure Provides:** ArgoCD Server, Namespaces, RBAC, External Secrets foundation
 
 ---
 
-## 🚨 Important Notes
+## ⚠️ Important Notes
 
-### Production Safety
+> [!WARNING]
+> **Production Safety**
+> - Always run `terraform plan` before applying changes
+> - Never apply directly to production without plan review
+> - Use remote state (S3) for stage/prod environments
 
-⚠️ **Always use `terraform plan`** - Never apply directly to production without a plan file review.
-
-### State Management
-
-🔒 **Choose Your Backend Strategy:**
-
-**Local Backend (Current):**
-- Active by default
-- Suitable for solo development and demos
-- State files in `environments/*/terraform.tfstate`
-
-**Remote Backend (Recommended for Teams):**
-- Bootstrap infrastructure ready in `bootstrap/`
-- Backend configs prepared in `environments/*/backend.tf` (commented out)
-- Enable by running bootstrap, uncommenting backend.tf, and migrating state
-- See [State Management](#-state-management) section above
-
-### Billable Resources
-
-💰 **This repository creates billable AWS resources.**
-- Remember to `terraform destroy` dev environments when not in use.
+> [!CAUTION]
+> **Billable Resources**
+> - This creates AWS resources that incur charges
+> - Remember to `terraform destroy` dev environments when not in use
+> - Estimated cost: Dev (~$50/month), Prod (~$150/month)
 
 ---
 
-## 📝 Making Changes
+## 🚨 Troubleshooting
 
-### Adding a New Addon
+<details>
+<summary><b>📖 Common Issues (Click to expand)</b></summary>
 
-1. Add Helm release to `modules/helm-addons/main.tf`
-2. Define necessary variables
-3. Apply to dev environment
-4. Verify pod health in `kube-system` or `argocd` namespaces
+### "AccessDenied" errors
 
-### Modifying Networking
+**Cause:** Missing IAM permissions
 
-1. **CAUTION**: Modifying VPC CIDRs or Subnets may cause recreation
-2. Always check the plan for `destroy and create replacement`
-3. Prefer adding new subnets over modifying existing ones
+**Fix:** Check which resource failed and add the required permission to your IAM policy. Common missing permissions:
+- `eks:CreateCluster` - for EKS creation
+- `iam:PassRole` - for service account roles
+- `ec2:CreateVpc` - for VPC creation
+
+### "Bucket already exists" (Bootstrap)
+
+**Cause:** S3 bucket names are globally unique
+
+**Fix:** Change `project_name` in `bootstrap/variables.tf` to include a unique suffix
+
+### State lock errors
+
+**Cause:** Another terraform process crashed
+
+**Fix:**
+```bash
+terraform force-unlock LOCK_ID  # Use with caution!
+```
+
+</details>
 
 ---
 
 ## ✅ Production Checklist
 
-Before applying to production:
+Before deploying to production:
 
-- [ ] Terraform FMT and Validate pass
-- [ ] Modules tested and verified in Stage
-- [ ] Remote state locking is active
-- [ ] AWS Quotas checked for Region
-- [ ] IAM Roles follow least-privilege
-- [ ] Secrets generated and stored in Secrets Manager
-- [ ] Plan output reviewed for unexpected deletions
+- [ ] Terraform fmt and validate pass
+- [ ] Modules tested in dev/stage environments
+- [ ] Remote state (S3 + DynamoDB) configured
+- [ ] IAM roles follow least-privilege principle
+- [ ] Secrets generated in AWS Secrets Manager
+- [ ] Plan output reviewed for unexpected changes
+- [ ] AWS quotas checked for region
 
 ---
 
@@ -430,5 +436,5 @@ Before applying to production:
 1. Work on a feature branch
 2. Use `terraform fmt` before committing
 3. Test in `environments/dev`
-4. Provide the `terraform plan` output in the PR description
+4. Provide `terraform plan` output in PR description
 5. Merge after approval
