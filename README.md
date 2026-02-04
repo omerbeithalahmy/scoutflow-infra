@@ -20,6 +20,7 @@ This repository manages ScoutFlow's global infrastructure across three environme
 - ✅ AWS Secrets Manager (Security & Compliance)
 - ✅ VPC Networking (Multi-AZ Isolation)
 - ✅ S3 & DynamoDB (State Management & Locking)
+- ✅ GitHub Actions (CI/CD Automation)
 
 ---
 
@@ -51,6 +52,10 @@ This repository manages ScoutFlow's global infrastructure across three environme
 
 ```
 scoutflow-infra/
+├── .github/
+│   └── workflows/                # CI/CD pipelines
+│       ├── terraform-pr.yml      # Automatic PR validation
+│       └── terraform-deploy.yml  # Manual deployment
 ├── bootstrap/                    # One-time state backend infrastructure (S3 + DynamoDB)
 ├── modules/                      # Reusable Terraform modules
 │   ├── networking/               # VPC, Subnets, NAT Gateways
