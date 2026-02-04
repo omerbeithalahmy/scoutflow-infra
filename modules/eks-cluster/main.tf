@@ -23,8 +23,6 @@ module "eks" {
 
   eks_managed_node_groups = {
     main_node_group = {
-      name = "${var.cluster_name}-node-group"
-
       instance_types = [var.node_instance_type]
       capacity_type  = var.node_capacity_type
 
