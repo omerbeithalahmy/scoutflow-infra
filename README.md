@@ -109,6 +109,52 @@ kubectl get pods -A | grep argocd
 
 ---
 
+## 🔄 CI/CD Pipeline
+
+<details>
+<summary><b>GitHub Actions Workflows (Click to expand)</b></summary>
+
+### 1. PR Validation (Automatic)
+
+Runs automatically on every Pull Request:
+- Format check (`terraform fmt`)
+- Syntax validation (`terraform validate`)
+- Plan generation for all environments
+
+**Workflow:** [terraform-pr.yml](.github/workflows/terraform-pr.yml)
+
+### 2. Manual Deploy
+
+Deploy infrastructure from GitHub Actions:
+1. Go to **Actions** tab → **Manual Deploy**
+2. Click **Run workflow**
+3. Select environment (dev/stage/prod)
+4. Click **Run workflow** button
+5. Review plan output
+6. For production: Manual approval required
+
+**Workflow:** [terraform-deploy.yml](.github/workflows/terraform-deploy.yml)
+
+### Setup
+
+Add AWS credentials to GitHub repository secrets:
+
+**GitHub Repo → Settings → Secrets and variables → Actions**
+- `AWS_ACCESS_KEY_ID` - Your AWS access key
+- `AWS_SECRET_ACCESS_KEY` - Your AWS secret key
+
+**Optional - Production Protection:**
+
+To require approval for production deploys:
+1. Go to **Settings → Environments**
+2. Create environment named `prod`
+3. Enable **Required reviewers**
+4. Add yourself as reviewer
+
+</details>
+
+---
+
 ## 🔐 IAM Setup
 
 <details>
