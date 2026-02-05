@@ -119,20 +119,78 @@ resource "helm_release" "kube_prometheus_stack" {
   create_namespace = true
   version          = var.monitoring_version
 
-  set_sensitive {
-    name  = "grafana.adminPassword"
-    value = random_password.grafana_admin_password[0].result
-  }
+  values = [
+    yamlencode({
+      grafana = {
+        adminPassword = random_password.grafana_admin_password[0].result
+        persistence = {
+          enabled = true
+          size    = "10Gi"
+        }
+        defaultDashboardsEnabled  = true
+        defaultDashboardsTimezone = "UTC"
+        sidecar = {
+          dashboards = {
+            enabled = true
+          }
+          datasources = {
+            enabled = true
+          }
+        }
+      }
 
-  set {
-    name  = "grafana.persistence.enabled"
-    value = "true"
-  }
+      prometheus = {
+        prometheusSpec = {
+          retention     = "15d"
+          retentionSize = "8GB"
+          storageSpec = {
+            volumeClaimTemplate = {
+              spec = {
+                resources = {
+                  requests = {
+                    storage = "10Gi"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 
-  set {
-    name  = "grafana.persistence.size"
-    value = "10Gi"
-  }
+      alertmanager = {
+        enabled = true
+      }
+
+      defaultRules = {
+        create = true
+        rules = {
+          alertmanager                = true
+          etcd                        = false
+          configReloaders             = true
+          general                     = true
+          k8s                         = true
+          kubeApiserverAvailability   = true
+          kubeApiserverSlos           = true
+          kubelet                     = true
+          kubeProxy                   = false
+          kubePrometheusGeneral       = true
+          kubePrometheusNodeRecording = true
+          kubernetesApps              = true
+          kubernetesResources         = true
+          kubernetesStorage           = true
+          kubernetesSystem            = true
+          kubeScheduler               = false
+          kubeStateMetrics            = true
+          network                     = true
+          node                        = true
+          nodeExporterAlerting        = true
+          nodeExporterRecording       = true
+          prometheus                  = true
+          prometheusOperator          = true
+        }
+      }
+    })
+  ]
 }
 
 

@@ -382,6 +382,107 @@ terraform destroy
 
 ---
 
+## 📊 Monitoring & Observability
+
+<details>
+<summary><b>📖 Access Prometheus & Grafana (Stage/Prod only)</b></summary>
+
+**Available in:** Stage and Production environments only (disabled in dev for cost savings)
+
+ScoutFlow uses the **kube-prometheus-stack** which includes:
+- ✅ **Prometheus** - Metrics collection and storage (15-day retention)
+- ✅ **Grafana** - Visualization dashboards
+- ✅ **Alertmanager** - Alert routing and notifications
+- ✅ **Node Exporter** - System-level metrics
+- ✅ **Kube State Metrics** - Kubernetes resource metrics
+
+### Access Grafana
+
+**Step 1: Get Grafana Admin Password**
+
+```bash
+cd environments/stage  # or prod
+terraform output -raw grafana_admin_password
+```
+
+**Step 2: Port Forward to Grafana**
+
+```bash
+# Configure kubectl first
+$(terraform output -raw configure_kubectl)
+
+# Port forward Grafana
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+```
+
+**Step 3: Open Grafana**
+
+Navigate to: `http://localhost:3000`
+- **Username:** `admin`
+- **Password:** (from Step 1)
+
+### Access Prometheus
+
+```bash
+# Port forward Prometheus
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+Navigate to: `http://localhost:9090`
+
+### Pre-configured Dashboards
+
+Grafana includes production-ready dashboards:
+
+| Dashboard | Purpose | Key Metrics |
+|-----------|---------|-------------|
+| **Kubernetes / Compute Resources / Cluster** | Overall cluster health | CPU, Memory, Network, Disk |
+| **Kubernetes / Compute Resources / Namespace (Pods)** | Per-namespace resource usage | Pod CPU/Memory/Network |
+| **Kubernetes / Compute Resources / Node** | Individual node metrics | Node utilization, allocatable resources |
+| **Node Exporter / Nodes** | System-level metrics | Disk I/O, filesystem usage, load average |
+| **Kubernetes / Persistent Volumes** | Storage monitoring | PV usage, capacity, state |
+
+### Alert Configuration
+
+The stack includes **30+ production-ready alerts** covering:
+
+**Critical Alerts:**
+- `KubeNodeNotReady` - Node is not ready
+- `KubePodCrashLooping` - Pod in CrashLoopBackOff state
+- `KubePersistentVolumeFillingUp` - PV > 85% full
+- `KubeMemoryOvercommit` - Memory requests exceed capacity
+- `KubeCPUOvercommit` - CPU requests exceed capacity
+
+**Warning Alerts:**
+- `KubeNodeMemoryPressure` - Node under memory pressure
+- `KubeNodeDiskPressure` - Node running out of disk space
+- `KubePodNotReady` - Pod not ready for extended period
+- `PrometheusTargetDown` - Scrape target is down
+
+**View Active Alerts:**
+```bash
+# Prometheus alerts page
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+# Open: http://localhost:9090/alerts
+
+# Alertmanager
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-alertmanager 9093:9093
+# Open: http://localhost:9093
+```
+
+### Monitoring Configuration
+
+- **Retention Period:** 15 days
+- **Storage:** 10 GB PersistentVolume (auto-provisioned)
+- **Scrape Interval:** 30 seconds
+- **Evaluation Interval:** 30 seconds
+
+</details>
+
+
+
+---
+
 ## 🔐 Secret Management
 
 All secrets are managed by **AWS Secrets Manager** (no hardcoded passwords!)
