@@ -88,8 +88,57 @@ resource "helm_release" "alb_controller" {
     name  = "vpcId"
     value = var.vpc_id
   }
+
+  wait          = true
+  wait_for_jobs = true
+  timeout       = 600
 }
 
+resource "time_sleep" "wait_for_alb_controller" {
+  create_duration = "60s"
+  depends_on      = [helm_release.alb_controller]
+}
+
+resource "kubernetes_storage_class" "gp3" {
+  metadata {
+    name = "gp3"
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  reclaim_policy         = "Delete"
+  allow_volume_expansion = true
+  volume_binding_mode    = "WaitForFirstConsumer"
+
+  parameters = {
+    type      = "gp3"
+    fsType    = "ext4"
+    encrypted = "true"
+  }
+
+  depends_on = [helm_release.alb_controller]
+}
+
+resource "kubernetes_storage_class" "standard" {
+  metadata {
+    name = "standard"
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  reclaim_policy         = "Delete"
+  allow_volume_expansion = true
+  volume_binding_mode    = "WaitForFirstConsumer"
+
+  parameters = {
+    type      = "gp3"
+    fsType    = "ext4"
+    encrypted = "true"
+  }
+
+  depends_on = [helm_release.alb_controller]
+}
 
 resource "helm_release" "argocd" {
   count = var.enable_argocd ? 1 : 0
@@ -118,6 +167,12 @@ resource "helm_release" "kube_prometheus_stack" {
   namespace        = "monitoring"
   create_namespace = true
   version          = var.monitoring_version
+
+  timeout       = 600
+  wait          = false # Don't wait 20 mins for large stack
+  wait_for_jobs = false
+
+  depends_on = [time_sleep.wait_for_alb_controller]
 
   values = [
     yamlencode({
@@ -312,7 +367,10 @@ resource "helm_release" "external_secrets" {
     value = "true"
   }
 
-  depends_on = [var.cluster_name]
+  timeout = 600
+  wait    = true
+
+  depends_on = [time_sleep.wait_for_alb_controller]
 }
 
 data "aws_iam_policy_document" "external_secrets" {
